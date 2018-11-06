@@ -2,5 +2,5 @@ kind: StorageClass
 apiVersion: storage.k8s.io/v1
 metadata:
   name: jupyterhub-storage-s3
-provisioner: storage.coming-soon.io/goofys
+provisioner: storage.gen3.io/goofys
 reclaimPolicy: Retain

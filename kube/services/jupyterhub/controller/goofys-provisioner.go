@@ -7,6 +7,9 @@
 // This file is modeled off of:
 // https://github.com/previousnext/k8s-aws-goofys/blob/master/controller/provisioner/provisioner.go
 
+// possible instructions on how to use this??
+// https://github.com/kubernetes-incubator/nfs-provisioner
+
 package provisioner
 
 import (
@@ -36,13 +39,13 @@ const (
 	// DefaultAnnotationGID defaults the www-data gid
 	DefaultAnnotationGID = "33"
 	// DriverName for installing a Flexvolume
-	DriverName = "skpr/goofys"
+	DriverName = "gen3/goofys"
 	// DriverType for providing developers with more context around this storage option
 	DriverType = "fuse"
 	// DefaultEnvFormat is a fallback for when a format is not provided
 	DefaultEnvFormat = "goofys-{{ .PVC.ObjectMeta.Namespace }}-{{ .PVC.ObjectMeta.Name }}"
 	// DefaultEnvRegion is a fallback for when a region is not provided
-	DefaultEnvRegion = "ap-southeast-2"
+	DefaultEnvRegion = "us-east-1"
 )
 
 var _ controller.Provisioner = &goofys{}
@@ -52,7 +55,7 @@ type goofys struct {
 	format string
 }
 
-// New return a Goofys provisioner.
+// New returns a Goofys provisioner.
 func New(region, format string) (controller.Provisioner, error) {
 	if region == "" {
 		region = DefaultEnvRegion
@@ -124,9 +127,9 @@ func (p *goofys) Provision(options controller.VolumeOptions) (*v1.PersistentVolu
 					Driver: DriverName,
 					FSType: DriverType,
 					Options: map[string]string{
-						cmd.OptionBucket: name,
-						cmd.OptionUID:    uid,
-						cmd.OptionGID:    gid,
+						cmd.OptionBucket: name //,
+						//cmd.OptionUID:    uid,
+						//cmd.OptionGID:    gid,
 					},
 				},
 			},
