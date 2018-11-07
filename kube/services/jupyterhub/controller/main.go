@@ -1,3 +1,6 @@
+// This file is modeled off of:
+// https://github.com/previousnext/k8s-aws-goofys/blob/master/controller/main.go
+
 package main
 
 import (
@@ -25,7 +28,7 @@ const (
 func main() {
 	flag.Parse()
 	flag.Set("logtostderr", "true")
-
+	
 	config, err := rest.InClusterConfig()
 	if err != nil {
 		panic(err)
