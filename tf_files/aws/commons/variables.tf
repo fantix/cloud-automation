@@ -139,3 +139,6 @@ locals {
 }
 
 
+variable "csoc_managed" {
+  default = "yes"
+}

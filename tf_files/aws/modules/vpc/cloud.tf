@@ -78,11 +78,11 @@ resource "aws_route_table" "public" {
     gateway_id = "${aws_internet_gateway.gw.id}"
   }
 
-  route {
+  #route {
     #from the commons vpc to the csoc vpc via the peering connection
-    cidr_block                = "${var.csoc_cidr}"
-    vpc_peering_connection_id = "${aws_vpc_peering_connection.vpcpeering.id}"
-  }
+  #  cidr_block                = "${var.csoc_cidr}"
+  #  vpc_peering_connection_id = "${aws_vpc_peering_connection.vpcpeering.id}"
+  #}
 
   tags {
     Name         = "main"
@@ -90,6 +90,16 @@ resource "aws_route_table" "public" {
     Organization = "Basic Service"
   }
 }
+
+
+resource "aws_route" "public_csoc" {
+  count = "${var.csoc_managed == "yes" ? 1 : 0}"
+  route_table_id            = "${aws_route_table.public.id}"
+  destination_cidr_block    = "${var.csoc_cidr}"
+  vpc_peering_connection_id = "${aws_vpc_peering_connection.vpcpeering.id}"
+  #depends_on                = ["aws_route_table.public"]
+}
+
 
 resource "aws_eip" "nat_gw" {
   vpc = true
@@ -109,11 +119,11 @@ resource "aws_route_table" "private_user" {
     nat_gateway_id = "${aws_nat_gateway.nat_gw.id}"
   }
 
-  route {
+  #route {
     #from the commons vpc to the csoc vpc via the peering connection
-    cidr_block                = "${var.csoc_cidr}"
-    vpc_peering_connection_id = "${aws_vpc_peering_connection.vpcpeering.id}"
-  }
+  #  cidr_block                = "${var.csoc_cidr}"
+  #  vpc_peering_connection_id = "${aws_vpc_peering_connection.vpcpeering.id}"
+  #}
 
   tags {
     Name         = "private_user"
@@ -122,19 +132,38 @@ resource "aws_route_table" "private_user" {
   }
 }
 
+
+resource "aws_route" "private_csoc" {
+  count = "${var.csoc_managed == "yes" ? 1 : 0}"
+  route_table_id            = "${aws_route_table.private_user.id}"
+  destination_cidr_block    = "${var.csoc_cidr}"
+  vpc_peering_connection_id = "${aws_vpc_peering_connection.vpcpeering.id}"
+  #depends_on                = ["aws_route_table.public"]
+}
+
 resource "aws_default_route_table" "default" {
   default_route_table_id = "${aws_vpc.main.default_route_table_id}"
 
-  route {
+  #route {
     #from the commons vpc to the csoc vpc via the peering connection
-    cidr_block                = "${var.csoc_cidr}"
-    vpc_peering_connection_id = "${aws_vpc_peering_connection.vpcpeering.id}"
-  }
+  #  cidr_block                = "${var.csoc_cidr}"
+  #  vpc_peering_connection_id = "${aws_vpc_peering_connection.vpcpeering.id}"
+  #}
 
   tags {
     Name = "default table"
   }
 }
+
+
+resource "aws_route" "default_csoc" {
+  count = "${var.csoc_managed == "yes" ? 1 : 0}"
+  route_table_id            = "${aws_default_route_table.default.id}"
+  destination_cidr_block    = "${var.csoc_cidr}"
+  vpc_peering_connection_id = "${aws_vpc_peering_connection.vpcpeering.id}"
+  #depends_on                = ["aws_route_table.public"]
+}
+
 
 resource "aws_main_route_table_association" "default" {
   vpc_id         = "${aws_vpc.main.id}"
@@ -204,6 +233,7 @@ resource "aws_cloudwatch_log_group" "main_log_group" {
 
 #This needs vars from other branches, so hopefully will work just fine when they are merge
 resource "aws_cloudwatch_log_subscription_filter" "csoc_subscription" {
+  count = "${var.csoc_managed == "yes" ? 1 : 0}"
   name            = "${var.vpc_name}_subscription"
   destination_arn = "arn:aws:logs:${data.aws_region.current.name}:${var.csoc_account_id}:destination:${var.vpc_name}_logs_destination"
   log_group_name  = "${var.vpc_name}"
@@ -304,6 +334,7 @@ resource "aws_route53_record" "squid" {
 
 # this is for vpc peering
 resource "aws_vpc_peering_connection" "vpcpeering" {
+  count = "${var.csoc_managed == "yes" ? 1 : 0}"
   peer_owner_id = "${var.csoc_account_id}"
   peer_vpc_id   = "${var.csoc_vpc_id}"
   vpc_id        = "${aws_vpc.main.id}"
@@ -313,6 +344,7 @@ resource "aws_vpc_peering_connection" "vpcpeering" {
     Name = "VPC Peering between ${var.vpc_name} and csoc_main_vpc"
   }
 }
+
 
 
 ##to be used by arranger when accessing the ES

@@ -20,6 +20,7 @@ module "cdis_vpc" {
   csoc_cidr       = "${var.csoc_cidr}"
   csoc_account_id = "${var.csoc_account_id}"
   squid-nlb-endpointservice-name = "${var.squid-nlb-endpointservice-name}"
+  csoc_managed    = "${var.csoc_managed}"
 }
 
 # logs bucket for elb logs
@@ -94,11 +95,11 @@ resource "aws_route_table" "private_kube" {
     nat_gateway_id = "${module.cdis_vpc.nat_gw_id}"
   }
 
-  route {
+  #route {
     #from the commons vpc to the csoc vpc via the peering connection
-    cidr_block                = "${var.csoc_cidr}"
-    vpc_peering_connection_id = "${module.cdis_vpc.vpc_peering_id}"
-  }
+  #  cidr_block                = "${var.csoc_cidr}"
+  #  vpc_peering_connection_id = "${module.cdis_vpc.vpc_peering_id}"
+  #}
 
   tags {
     Name         = "private_kube"
@@ -106,6 +107,13 @@ resource "aws_route_table" "private_kube" {
     Organization = "Basic Service"
   }
 }
+
+#resource "aws_route" "public_csoc" {
+#  count = "${var.csoc_managed == "yes" ? 1 : 0}"
+#  route_table_id            = "${aws_route_table.private_kube.id}"
+#  destination_cidr_block    = "${var.csoc_cidr}"
+#  vpc_peering_connection_id = "${module.cdis_vpc.vpc_peering_id}"
+#}
 
 resource "aws_route_table_association" "private_kube" {
   subnet_id      = "${aws_subnet.private_kube.id}"
@@ -195,10 +203,10 @@ resource "aws_vpc_endpoint" "squid-nlb" {
 }
 
 
-resource "aws_route53_record" "squid-nlb" {
-  zone_id = "${module.cdis_vpc.zone_id}"
-  name    = "csoc-cloud-proxy.${module.cdis_vpc.zone_name}"
-  type    = "CNAME"
-  ttl     = "300"
-  records = ["${lookup(aws_vpc_endpoint.squid-nlb.dns_entry[0], "dns_name")}"]
-}
+#resource "aws_route53_record" "squid-nlb" {
+ # zone_id = "${module.cdis_vpc.zone_id}"
+  #name    = "cloud-proxy.${module.cdis_vpc.zone_name}"
+  #type    = "CNAME"
+  #ttl     = "300"
+  #records = ["${lookup(aws_vpc_endpoint.squid-nlb.dns_entry[0], "dns_name")}"]
+#}
