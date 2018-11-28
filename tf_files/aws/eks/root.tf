@@ -14,5 +14,6 @@ module "eks" {
   instance_type   = "${var.instance_type}"
   csoc_cidr       = "${var.csoc_cidr}"
   users_policy    = "${var.users_policy}"
+  csoc_managed    = "${var.csoc_managed}"
 }
 

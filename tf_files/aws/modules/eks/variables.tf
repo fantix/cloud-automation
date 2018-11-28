@@ -15,3 +15,6 @@ variable "csoc_cidr" {
 
 variable "users_policy" {}
 
+variable "csoc_managed" {
+  default = "yes"
+}

@@ -153,6 +153,7 @@ data "aws_nat_gateway" "the_gateway" {
 # Also let's allow comminication through the peering
 
 data "aws_vpc_peering_connection" "pc" {
+  count = "${var.csoc_managed == "yes" ? 1 : 0}"
   vpc_id          = "${data.aws_vpc.the_vpc.id}"
 }
 
@@ -188,17 +189,24 @@ resource "aws_route_table" "eks_private" {
     nat_gateway_id = "${data.aws_nat_gateway.the_gateway.id}"
   }
 
-  route {
+  #route {
     #from the commons vpc to the csoc vpc via the peering connection
-    cidr_block                = "${var.csoc_cidr}"
-    vpc_peering_connection_id = "${data.aws_vpc_peering_connection.pc.id}"
-  }
+  #  cidr_block                = "${var.csoc_cidr}"
+  #  vpc_peering_connection_id = "${data.aws_vpc_peering_connection.pc.id}"
+  #}
 
   tags {
     Name         = "eks_private"
     Environment  = "${var.vpc_name}"
     Organization = "Basic Service"
   }
+}
+
+resource "aws_route" "eks_private" {
+  count = "${var.csoc_managed == "yes" ? 1 : 0}"
+  route_table_id            = "${aws_route_table.eks_private.id}"
+  destination_cidr_block    = "${var.csoc_cidr}"
+  vpc_peering_connection_id = "${data.aws_vpc_peering_connection.pc.id}"
 }
 
 
