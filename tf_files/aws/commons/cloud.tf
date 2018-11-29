@@ -190,6 +190,7 @@ resource "aws_db_subnet_group" "private_group" {
 # private_kube; hence have the code in here
 
 resource "aws_vpc_endpoint" "squid-nlb" {
+  count = "${var.csoc_managed == "yes" ? 1 : 0}"
   vpc_id            = "${module.cdis_vpc.vpc_id}"
   service_name      = "${var.squid-nlb-endpointservice-name}"
   vpc_endpoint_type = "Interface"
