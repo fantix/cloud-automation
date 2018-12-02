@@ -12,8 +12,8 @@ module "eks" {
   vpc_name        = "${var.vpc_name}"
   ec2_keyname     = "${var.ec2_keyname}"
   instance_type   = "${var.instance_type}"
-  csoc_cidr       = "${var.csoc_cidr}"
+  peering_cidr    = "${var.peering_cidr}"
   users_policy    = "${var.users_policy}"
-  csoc_managed    = "${var.csoc_managed}"
+#  csoc_managed    = "${var.csoc_managed}"
 }
 

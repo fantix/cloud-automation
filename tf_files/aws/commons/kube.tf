@@ -7,14 +7,16 @@ resource "aws_security_group" "kube-worker" {
     from_port   = 30000
     to_port     = 30100
     protocol    = "TCP"
-    cidr_blocks = ["172.${var.vpc_octet2}.${var.vpc_octet3}.0/20", "${var.csoc_cidr}"]
+    cidr_blocks = ["${var.vpc_cidr_block}","${var.csoc_managed == "yes" ? var.csoc_cidr : data.aws_vpc.csoc_vpc.cidr_block}"]
+#    cidr_blocks = ["172.${var.vpc_octet2}.${var.vpc_octet3}.0/20", "${var.csoc_cidr}"]
   }
 
   ingress {
     from_port   = 443
     to_port     = 443
     protocol    = "TCP"
-    cidr_blocks = ["${var.csoc_cidr}"]
+#    cidr_blocks = ["${var.csoc_cidr}"]
+    cidr_blocks = ["${var.csoc_managed == "yes" ? var.csoc_cidr : data.aws_vpc.csoc_vpc.cidr_block}"]
   }
 
   tags {

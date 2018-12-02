@@ -387,9 +387,10 @@ EOM
       commonsName=${GEN3_WORKSPACE//_eks/}
       cat - <<EOM
 vpc_name      = "${commonsName}"
+users_policy  = "${commonsName}"
 instance_type = "t2.medium"
+
 ec2_keyname   = "someone@uchicago.edu"
-users_policy  = "PUT SOMETHING HERE"
 EOM
     return 0
   fi
@@ -428,14 +429,15 @@ vpc_name="$GEN3_WORKSPACE"
 # for vpc_octet see https://github.com/uc-cdis/cdis-wiki/blob/master/ops/AWS-Accounts.md
 #  CIDR becomes 172.{vpc_octet2}.{vpc_octet3}.0/20
 #
-vpc_octet2=GET_A_UNIQUE_VPC_172_OCTET2
-vpc_octet3=GET_A_UNIQUE_VPC_172_OCTET3
+#vpc_octet2=GET_A_UNIQUE_VPC_172_OCTET2
+#vpc_octet3=GET_A_UNIQUE_VPC_172_OCTET3
+
+vpc_cidr=UNIQUE_CIDR
+
 dictionary_url="https://s3.amazonaws.com/dictionary-artifacts/YOUR/DICTIONARY/schema.json"
 portal_app="dev"
 
 aws_cert_name="arn:aws:acm:REGION:ACCOUNT-NUMBER:certificate/CERT-ID"
-
-db_size=10
 
 hostname="YOUR.API.HOSTNAME"
 #
@@ -454,6 +456,10 @@ hmac_encryption_key="$(random_alphanumeric 32 | base64)"
 
 gdcapi_secret_key="$(random_alphanumeric 50)"
 
+
+db_instance="db.t2.micro"
+db_size=10
+
 # don't use ( ) " ' { } < > @ in password
 db_password_fence="$(random_alphanumeric 32)"
 
@@ -462,8 +468,6 @@ db_password_sheepdog="$db_password_sheepdog"
 db_password_peregrine="$(random_alphanumeric 32)"
 
 db_password_indexd="$(random_alphanumeric 32)"
-
-db_instance="db.t2.micro"
 
 # password for write access to indexd
 gdcapi_indexd_password="$(random_alphanumeric 32)"

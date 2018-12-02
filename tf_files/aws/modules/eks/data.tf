@@ -1,3 +1,21 @@
+##
+#
+# terraform data represents data we can query from the provider given certain and required minimal information.
+#
+#
+##
+
+data "aws_caller_identity" "current" {}
+data "aws_region" "current" {}
+data "aws_availability_zones" "available" {
+  state = "available"
+}
+
+
+data "aws_vpc_endpoint_service" "s3" {
+  service = "s3"
+}
+
 
 data "template_file" "kube_config" {
   template = "${file("${path.module}/kubeconfig.tpl")}"
@@ -24,3 +42,4 @@ data "template_file" "init_cluster" {
 data "template_file" "ssh_keys" {
   template = "${file("${path.module}/../../../../files/authorized_keys/ops_team")}"
 }
+

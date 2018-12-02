@@ -13,11 +13,13 @@ provider "aws" {}
 module "cdis_vpc" {
   ami_account_id  = "${var.ami_account_id}"
   source          = "../modules/vpc"
-  vpc_octet2      = "${var.vpc_octet2}"
-  vpc_octet3      = "${var.vpc_octet3}"
+#  vpc_octet2      = "${var.vpc_octet2}"
+#  vpc_octet3      = "${var.vpc_octet3}"
+  vpc_cidr_block  = "${var.vpc_cidr_block}"
   vpc_name        = "${var.vpc_name}"
   ssh_key_name    = "${aws_key_pair.automation_dev.key_name}"
-  csoc_cidr       = "${var.csoc_cidr}"
+  #csoc_cidr       = "${var.csoc_cidr}"
+  csoc_cidr      = "${var.csoc_managed == "yes" ? var.csoc_cidr : data.aws_vpc.csoc_vpc.cidr_block}"
   csoc_account_id = "${var.csoc_account_id}"
   squid-nlb-endpointservice-name = "${var.squid-nlb-endpointservice-name}"
   csoc_managed    = "${var.csoc_managed}"
@@ -98,7 +100,8 @@ resource "aws_route_table" "private_kube" {
 
   route {
     #from the commons vpc to the csoc vpc via the peering connection
-    cidr_block                = "${var.csoc_cidr}"
+#    cidr_block                = "${var.csoc_cidr}"
+    cidr_block                = "${var.csoc_managed == "yes" ? var.csoc_cidr : data.aws_vpc.csoc_vpc.cidr_block}"
     vpc_peering_connection_id = "${module.cdis_vpc.vpc_peering_id}"
   }
 
@@ -123,7 +126,8 @@ resource "aws_route_table_association" "private_kube" {
 
 resource "aws_subnet" "private_kube" {
   vpc_id                  = "${module.cdis_vpc.vpc_id}"
-  cidr_block              = "172.${var.vpc_octet2}.${var.vpc_octet3 + 2}.0/24"
+#  cidr_block              = "172.${var.vpc_octet2}.${var.vpc_octet3 + 2}.0/24"
+  cidr_block              = "${cidrsubnet(var.vpc_cidr_block,4,2)}"
   map_public_ip_on_launch = false
   availability_zone       = "${data.aws_availability_zones.available.names[0]}"
   tags                    = "${map("Name", "private_kube", "Organization", "Basic Service", "Environment", var.vpc_name, "kubernetes.io/cluster/${var.vpc_name}", "owned")}"
@@ -141,7 +145,8 @@ resource "aws_route_table_association" "public_kube" {
 
 resource "aws_subnet" "public_kube" {
   vpc_id                  = "${module.cdis_vpc.vpc_id}"
-  cidr_block              = "172.${var.vpc_octet2}.${var.vpc_octet3 + 4}.0/24"
+  #cidr_block              = "172.${var.vpc_octet2}.${var.vpc_octet3 + 4}.0/24"
+  cidr_block              = "${cidrsubnet(var.vpc_cidr_block,4,4)}"
   map_public_ip_on_launch = true
   availability_zone       = "${data.aws_availability_zones.available.names[0]}"
 
@@ -156,7 +161,8 @@ resource "aws_subnet" "public_kube" {
 
 resource "aws_subnet" "private_db_alt" {
   vpc_id                  = "${module.cdis_vpc.vpc_id}"
-  cidr_block              = "172.${var.vpc_octet2}.${var.vpc_octet3 + 3}.0/24"
+  #cidr_block              = "172.${var.vpc_octet2}.${var.vpc_octet3 + 3}.0/24"
+  cidr_block              = "${cidrsubnet(var.vpc_cidr_block,4,3)}"
   availability_zone       = "${data.aws_availability_zones.available.names[1]}"
   map_public_ip_on_launch = false
   availability_zone       = "${data.aws_availability_zones.available.names[1]}"

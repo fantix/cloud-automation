@@ -8,12 +8,6 @@
 
 
 
-#Basics
-
-data "aws_caller_identity" "current" {}
-data "aws_region" "current" {}
-
-
 ## First thing we need to create is the role that would spin up resources for us 
 
 resource "aws_iam_role" "eks_control_plane_role" {
@@ -53,18 +47,12 @@ resource "aws_iam_role_policy_attachment" "bucket_write" {
   role       = "${aws_iam_role.eks_control_plane_role.name}"
 }
 
-
-# Let's get the availability zones for the region we are working on
-data "aws_availability_zones" "available" {
-  state = "available"
-}
-
 ####
 # * aws_eks_cluster.eks_cluster: error creating EKS Cluster (fauziv1): UnsupportedAvailabilityZoneException: Cannot create cluster 'fauziv1' because us-east-1e, the targeted availability zone, does not currently have sufficient capacity to support the cluster. Retry and choose from these availability zones: us-east-1a, us-east-1c, us-east-1d
 ####
 resource "random_shuffle" "az" {
-#  input = ["${data.aws_availability_zones.available.names}"] 
-  input = ["us-east-1a", "us-east-1c", "us-east-1d"]
+  input = ["${data.aws_availability_zones.available.names}"] 
+#  input = ["us-east-1a", "us-east-1c", "us-east-1d"]
   result_count = 3
   count = 1
 }
@@ -85,7 +73,8 @@ data "aws_vpc" "the_vpc" {
 
 # The subnet where our cluster will live in 
 resource "aws_subnet" "eks_private" {
-  count = 3
+  #count                   = 3
+  count                   = "${random_shuffle.az.result_count}"
   vpc_id                  = "${data.aws_vpc.the_vpc.id}"
   cidr_block              = "${cidrsubnet(data.aws_vpc.the_vpc.cidr_block, 4 , ( 7 + count.index ))}"
   availability_zone       = "${random_shuffle.az.result[count.index]}"
@@ -109,9 +98,10 @@ resource "aws_subnet" "eks_private" {
 
 # for the ELB to talk to the worker nodes
 resource "aws_subnet" "eks_public" {
-  count                   = 3
+#  count                   = 3
+  count                   = "${random_shuffle.az.result_count}"
   vpc_id                  = "${data.aws_vpc.the_vpc.id}"
-  cidr_block              = "${cidrsubnet(data.aws_vpc.the_vpc.cidr_block, 4 , ( 10 + count.index ))}"
+  cidr_block              = "${cidrsubnet(data.aws_vpc.the_vpc.cidr_block, 4 , ( (7 + random_shuffle.az.result_count) + count.index ))}"
   map_public_ip_on_launch = true
   availability_zone       = "${random_shuffle.az.result[count.index]}"
 
@@ -153,8 +143,8 @@ data "aws_nat_gateway" "the_gateway" {
 # Also let's allow comminication through the peering
 
 data "aws_vpc_peering_connection" "pc" {
-  count = "${var.csoc_managed == "yes" ? 1 : 0}"
-  vpc_id          = "${data.aws_vpc.the_vpc.id}"
+#  count    = "${var.csoc_managed == "yes" ? 1 : 0}"
+  vpc_id   = "${data.aws_vpc.the_vpc.id}"
 }
 
 resource "aws_route_table" "eks_private" {
@@ -189,11 +179,11 @@ resource "aws_route_table" "eks_private" {
     nat_gateway_id = "${data.aws_nat_gateway.the_gateway.id}"
   }
 
-  #route {
+  route {
     #from the commons vpc to the csoc vpc via the peering connection
-  #  cidr_block                = "${var.csoc_cidr}"
-  #  vpc_peering_connection_id = "${data.aws_vpc_peering_connection.pc.id}"
-  #}
+    cidr_block                = "${var.peering_cidr}"
+    vpc_peering_connection_id = "${data.aws_vpc_peering_connection.pc.id}"
+  }
 
   tags {
     Name         = "eks_private"
@@ -202,12 +192,12 @@ resource "aws_route_table" "eks_private" {
   }
 }
 
-resource "aws_route" "eks_private" {
-  count = "${var.csoc_managed == "yes" ? 1 : 0}"
-  route_table_id            = "${aws_route_table.eks_private.id}"
-  destination_cidr_block    = "${var.csoc_cidr}"
-  vpc_peering_connection_id = "${data.aws_vpc_peering_connection.pc.id}"
-}
+#resource "aws_route" "eks_private" {
+#  count = "${var.csoc_managed == "yes" ? 1 : 0}"
+#  route_table_id            = "${aws_route_table.eks_private.id}"
+#  destination_cidr_block    = "${var.csoc_cidr}"
+#  vpc_peering_connection_id = "${data.aws_vpc_peering_connection.pc.id}"
+#}
 
 
 # Apparently we cannot iterate over the resource, therefore I am querying them after creation
@@ -222,20 +212,17 @@ data "aws_subnet_ids" "private" {
 }
 
 resource "aws_route_table_association" "private_kube" {
-  count          = 3
+  #count          = 3
+  count          = "${random_shuffle.az.result_count}"
   subnet_id      = "${data.aws_subnet_ids.private.ids[count.index]}"
   route_table_id = "${aws_route_table.eks_private.id}"
   lifecycle {
-    # allow user to change tags interactively - ex - new kube-aws cluster
-    ignore_changes = ["id", "subnet_id"]
+    # allow user to change tags interactively 
+    ignore_changes = ["id", "subnet_id","tags"]
   }
 }
 
 # Finally lets allow the nodes to access S3 directly 
-
-data "aws_vpc_endpoint_service" "s3" {
-  service = "s3"
-}
 
 resource "aws_vpc_endpoint" "k8s-s3" {
   vpc_id       =  "${data.aws_vpc.the_vpc.id}"
@@ -283,7 +270,8 @@ data "aws_subnet_ids" "public_kube" {
 
 
 resource "aws_route_table_association" "public_kube" {
-  count          = 3
+  #count          = 3
+  count          = "${random_shuffle.az.result_count}"
   subnet_id      = "${data.aws_subnet_ids.public_kube.ids[count.index]}"
   route_table_id = "${data.aws_route_table.public_kube.id}"
 

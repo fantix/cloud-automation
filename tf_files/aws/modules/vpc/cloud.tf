@@ -1,30 +1,8 @@
-module "squid_proxy" {
-  source               = "../squid"
-  csoc_cidr            = "${var.csoc_cidr}"
-  env_vpc_name         = "${var.vpc_name}"
-  env_public_subnet_id = "${aws_subnet.public.id}"
-  env_vpc_cidr         = "${aws_vpc.main.cidr_block}"
-  env_vpc_id           = "${aws_vpc.main.id}"
-  ssh_key_name         = "${var.ssh_key_name}"
-  env_instance_profile = "${aws_iam_instance_profile.cluster_logging_cloudwatch.name}"
-  env_log_group        = "${aws_cloudwatch_log_group.main_log_group.name}"
-}
 
-module "data-bucket" {
-  source               = "../upload-data-bucket"
-  vpc_name             = "${var.vpc_name}"
-  cloudwatchlogs_group = "${aws_cloudwatch_log_group.main_log_group.arn}"
-  environment          = "${var.vpc_name}"
-}
-
-module "fence-bot-user" {
-  source               = "../fence-bot-user"
-  vpc_name             = "${var.vpc_name}"
-  bucket_name          = "${module.data-bucket.data-bucket_name}"
-}
 
 resource "aws_vpc" "main" {
-  cidr_block           = "172.${var.vpc_octet2}.${var.vpc_octet3}.0/20"
+#  cidr_block           = "172.${var.vpc_octet2}.${var.vpc_octet3}.0/20"
+  cidr_block           = "${var.vpc_cidr_block}"
   enable_dns_hostnames = true
 
   tags {
@@ -38,9 +16,6 @@ resource "aws_vpc" "main" {
   }
 }
 
-data "aws_vpc_endpoint_service" "s3" {
-  service = "s3"
-}
 
 resource "aws_vpc_endpoint" "private-s3" {
   vpc_id          = "${aws_vpc.main.id}"
@@ -78,6 +53,7 @@ resource "aws_route_table" "public" {
   route {
     #from the commons vpc to the csoc vpc via the peering connection
     cidr_block                = "${var.csoc_cidr}"
+#    cidr_block                = "${var.csoc_managed == "yes" ? var.csoc_cidr : data.aws_vpc.csoc_vpc.cidr_block}"
     vpc_peering_connection_id = "${aws_vpc_peering_connection.vpcpeering.id}"
   }
 
@@ -88,13 +64,6 @@ resource "aws_route_table" "public" {
   }
 }
 
-
-#resource "aws_route" "public_csoc" {
-#  count = "${var.csoc_managed == "yes" ? 1 : 0}"
-#  route_table_id            = "${aws_route_table.public.id}"
-#  destination_cidr_block    = "${var.csoc_cidr}"
-#  vpc_peering_connection_id = "${aws_vpc_peering_connection.vpcpeering.id}"
-#}
 
 
 resource "aws_eip" "nat_gw" {
@@ -118,6 +87,7 @@ resource "aws_route_table" "private_user" {
   route {
     #from the commons vpc to the csoc vpc via the peering connection
     cidr_block                = "${var.csoc_cidr}"
+#    cidr_block                = "${var.csoc_managed == "yes" ? var.csoc_cidr : data.aws_vpc.csoc_vpc.cidr_block}"
     vpc_peering_connection_id = "${aws_vpc_peering_connection.vpcpeering.id}"
   }
 
@@ -129,13 +99,6 @@ resource "aws_route_table" "private_user" {
 }
 
 
-#resource "aws_route" "private_csoc" {
-#  count = "${var.csoc_managed == "yes" ? 1 : 0}"
-#  route_table_id            = "${aws_route_table.private_user.id}"
-#  destination_cidr_block    = "${var.csoc_cidr}"
-#  vpc_peering_connection_id = "${aws_vpc_peering_connection.vpcpeering.id}"
-  #depends_on                = ["aws_route_table.public"]
-#}
 
 resource "aws_default_route_table" "default" {
   default_route_table_id = "${aws_vpc.main.default_route_table_id}"
@@ -143,6 +106,7 @@ resource "aws_default_route_table" "default" {
   route {
     #from the commons vpc to the csoc vpc via the peering connection
     cidr_block                = "${var.csoc_cidr}"
+#    cidr_block                = "${var.csoc_managed == "yes" ? var.csoc_cidr : data.aws_vpc.csoc_vpc.cidr_block}"
     vpc_peering_connection_id = "${aws_vpc_peering_connection.vpcpeering.id}"
   }
 
@@ -151,14 +115,6 @@ resource "aws_default_route_table" "default" {
   }
 }
 
-
-#resource "aws_route" "default_csoc" {
-#  count = "${var.csoc_managed == "yes" ? 1 : 0}"
-#  route_table_id            = "${aws_default_route_table.default.id}"
-#  destination_cidr_block    = "${var.csoc_cidr}"
-#  vpc_peering_connection_id = "${aws_vpc_peering_connection.vpcpeering.id}"
-  #depends_on                = ["aws_route_table.public"]
-#}
 
 
 resource "aws_main_route_table_association" "default" {
@@ -178,7 +134,8 @@ resource "aws_route_table_association" "private_user" {
 
 resource "aws_subnet" "public" {
   vpc_id                  = "${aws_vpc.main.id}"
-  cidr_block              = "172.${var.vpc_octet2}.${var.vpc_octet3 + 0}.0/24"
+  #cidr_block              = "172.${var.vpc_octet2}.${var.vpc_octet3 + 0}.0/24"
+  cidr_block		  = "${cidrsubnet(var.vpc_cidr_block,4,0)}"
   map_public_ip_on_launch = true
 
   # kube_ subnets are in availability zone [0], so put this in [1]
@@ -194,7 +151,8 @@ resource "aws_subnet" "public" {
 
 resource "aws_subnet" "private_user" {
   vpc_id                  = "${aws_vpc.main.id}"
-  cidr_block              = "172.${var.vpc_octet2}.${var.vpc_octet3 + 1}.0/24"
+  #cidr_block              = "172.${var.vpc_octet2}.${var.vpc_octet3 + 1}.0/24"
+  cidr_block		  = "${cidrsubnet(var.vpc_cidr_block,4,1)}"
   map_public_ip_on_launch = false
 
   # kube_ subnets are in availability zone [0], so put this in [1]
@@ -227,11 +185,12 @@ resource "aws_cloudwatch_log_group" "main_log_group" {
   }
 }
 
+
 #This needs vars from other branches, so hopefully will work just fine when they are merge
 resource "aws_cloudwatch_log_subscription_filter" "csoc_subscription" {
   count = "${var.csoc_managed == "yes" ? 1 : 0}"
   name            = "${var.vpc_name}_subscription"
-  destination_arn = "arn:aws:logs:${data.aws_region.current.name}:${var.csoc_account_id}:destination:${var.vpc_name}_logs_destination"
+  destination_arn = "arn:aws:logs:${data.aws_region.current.name}:${var.csoc_managed == "yes" ? var.csoc_account_id : data.aws_caller_identity.current.account_id}:destination:${var.vpc_name}_logs_destination"
   log_group_name  = "${var.vpc_name}"
   filter_pattern  = ""
 }
@@ -312,7 +271,9 @@ resource "aws_iam_instance_profile" "cluster_logging_cloudwatch" {
 resource "aws_route53_zone" "main" {
   name    = "internal.io"
   comment = "internal dns server for ${var.vpc_name}"
-  vpc_id  = "${aws_vpc.main.id}"
+  vpc {
+    vpc_id  = "${aws_vpc.main.id}"
+  }
 
   tags {
     Environment  = "${var.vpc_name}"
@@ -331,7 +292,7 @@ resource "aws_route53_record" "squid" {
 # this is for vpc peering
 resource "aws_vpc_peering_connection" "vpcpeering" {
 #  count = "${var.csoc_managed == "yes" ? 1 : 0}"
-  peer_owner_id = "${var.csoc_account_id}"
+  peer_owner_id = "${var.csoc_managed == "yes" ? var.csoc_account_id : data.aws_caller_identity.current.account_id}"
   peer_vpc_id   = "${var.csoc_vpc_id}"
   vpc_id        = "${aws_vpc.main.id}"
   auto_accept   = true
@@ -360,7 +321,8 @@ resource "aws_route" "default_csoc" {
   #count = "${var.csoc_managed == "yes" ? 0 : 1}"
   count                     = "${length(data.aws_route_tables.control_routing_table.ids)}"
   route_table_id            = "${data.aws_route_tables.control_routing_table.ids[count.index]}"
-  destination_cidr_block    = "172.${var.vpc_octet2}.${var.vpc_octet3}.0/20"
+#  destination_cidr_block    = "172.${var.vpc_octet2}.${var.vpc_octet3}.0/20"
+  destination_cidr_block    = "${var.vpc_cidr_block}"
   vpc_peering_connection_id = "${aws_vpc_peering_connection.vpcpeering.id}"
 }
 
