@@ -1,8 +1,10 @@
 The following guide is intended to guide you through the process of bringing up a gen3 commons.
 
-First part, setting up the adminVM,
+
+# First part, setting up the adminVM,
 
 1. Clone the repo
+
   ```git clone https://github.com/uc-cdis/cloud-automation.git```
 
 2. If no proxy is needded then 
@@ -30,7 +32,7 @@ First part, setting up the adminVM,
   It worth noting that additional information may be required in this file, everything would depend on your setup for the VM in question
 
 
-Second part start gen3
+# Second part start gen3
 
 1. Initialize the base module
   ```gen3 workon cdistest commons-test```
