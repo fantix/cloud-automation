@@ -1,24 +1,30 @@
+# Commons built up steps 
+
 The following guide is intended to guide you through the process of bringing up a gen3 commons.
 
 
-# First part, setting up the adminVM,
+## First part, setting up the adminVM
 
 1. Clone the repo
-
-  ```git clone https://github.com/uc-cdis/cloud-automation.git```
+  ```git clone https://github.com/uc-cdis/cloud-automation.git
+```
 
 2. If no proxy is needded then 
-  ```export GEN3_NOPROXY='no'```
+  ```export GEN3_NOPROXY='no'
+```
    If a proxy is required, then gen3 would assume cloud-proxy.internal.io:3128 is your proxy for http and https
 
 3. Install dependencies, you must run this part as a sudo access user
-  ```bash cloud-automation/gen3/bin/kube-setup-workvm.sh```
+  ```bash cloud-automation/gen3/bin/kube-setup-workvm.sh
+```
 
 4. kube-setup-workvm.sh add a few required configurations to the user's local bashrc file. To be able to use them, we may want to source it, otherwise we'll have to logout and in again.
-  ```source .bashrc```
+  ```source .bashrc
+```
 
 5. Edit the local aws config file by adding a profile additional to default, even if it's the same info as the default. It should look something like: 
-  ```ubuntu@ip-172-31-40-144:~$ cat .aws/config 
+```
+  ubuntu@ip-172-31-40-144:~$ cat .aws/config 
   [default]
   output = json
   region = us-east-1
@@ -27,21 +33,24 @@ The following guide is intended to guide you through the process of bringing up 
   [profile cdistest]
   output = json
   region = us-east-1
-  credential_source = Ec2InstanceMetadata```
+  credential_source = Ec2InstanceMetadata
+```
 
-  It worth noting that additional information may be required in this file, everything would depend on your setup for the VM in question
+  It worth noting that additional information may be required in this file, everything would depend on your setup for the VM in question.
 
 
-# Second part start gen3
+## Second part start gen3
 
 1. Initialize the base module
-  ```gen3 workon cdistest commons-test```
+  ```gen3 workon cdistest commons-test
+```
 
   Note: The third argument of the above command (cdistest) refers to the profile in the config file setup in step five of the fist part.
         The forth argument (commons-test) would be the name of commons you want to use, only lowercase letters and hyphen are permitted.
 
 2. Go to the terraform workspace folder
-  ```gen3 cd```
+  ```gen3 cd
+```
 
 3. Edit the `config.tfvars` file with a text editor of prefference. 
 
@@ -68,27 +77,32 @@ The following guide is intended to guide you through the process of bringing up 
 
 
 4. Create a terraform plan
-  ```gen3 tfplan```
+  ```gen3 tfplan
+```
   You may want to review what will be created by terraform by going through the outputed plan.
 
 5. Apply the previously created plan
-  ```gen3 tfapply```
+  ```gen3 tfapply
+```
 
 6. Copy the newly _output folder created to the user's home folder. Keep in mind that you'll see the folder if you haven't `cd` onto a different folder after running `gen3 cd`
-  ```cp -r commons-test_output/ $HOME```
+  ```cp -r commons-test_output/ $HOME
+```
 
 
 
-Third part, deploy the kubernetes cluster
+## Third part, deploy the kubernetes cluster
 
 1. Initialize the EKS module
-  ```gen3 workon cdistest commons-test_eks```
+  ```gen3 workon cdistest commons-test_eks
+```
 
   Note: The third argument of the above command (cdistest) refers to the profile in the config file setup in step five of the fist part.
         The forth argument would be the name of commons you want to use, only lowercase letters and hyphen are permitted. You must add `_eks` to the name in order to invoke the EKS module.
 
 2. Go to the terraform workspace folder
-  ```gen3 cd```
+  ```gen3 cd
+```
 
 3. Edit the `config.tfvars` file with a text editor of prefference. 
 
@@ -103,46 +117,57 @@ Third part, deploy the kubernetes cluster
   `ec2_keyname` an existing Key Pair in EC2 for the workers for deployment. More keys can be added automatically if you specify them in $HOME/cloud-automation/files/authorized_keys/ops_team.
 
 4. Create a terraform plan
-  ```gen3 tfplan```
+  ```gen3 tfplan
+```
   You may want to review what will be created by terraform by going through the outputed plan.
 
 5. Apply the previously created plan
-  ```gen3 tfapply```
+  ```gen3 tfapply
+```
 
 6. The EKS module creates a kubernetes configuration file (kubeconfig), copy it to the user's home folder.
-  ```cp commons-test_output_EKS/kubeconfig $HOME```
+  ```cp commons-test_output_EKS/kubeconfig $HOME
+```
 
 
 
-Fourth part, bring up services in kubernetes
+## Fourth part, bring up services in kubernetes
 
 1. Access the folder copied to the home folder
-  ```cd $HOME/commons-test_output/```
+  ```cd $HOME/commons-test_output/
+```
 
 2. Run `kube-up.sh`
-  ```bash kube-up.sh```
+  ```bash kube-up.sh
+```
 
 4. Move the kubeconfig file we copied previously into a newly created folder that `kube-up.sh` created for us.
-  ```mv $HOME/kubconfig $HOME/commons-test/```
+  ```mv $HOME/kubconfig $HOME/commons-test/
+```
 
 3. Create a manifest folder
-  ```mkdir -p $HOME/cdis-manifest/commons-test.plantx-pla.net```
+  ```mkdir -p $HOME/cdis-manifest/commons-test.plantx-pla.net
+```
 
   Note: The cdis-manifest folder is required, if you want to use your own manifest folder name you must make changes to the code, the file containing the line is `cloud-automation/gen3/lib/g3k_manifest.sh`.
         Moreover, a subfolder named the same as your hostname is required.
 
 4. kube-up.sh added a few lines to our local bashrc file, let's load the up.
-  ```source $HOME/.bashrc```
+  ```source $HOME/.bashrc
+```
 
 5. Verify that kubernetes is up. After sourcing our local bashrc file we should be able to talk to kubernetes:
-  ```kubectl get nodes```
+  ```kubectl get nodes
+```
 
 6. Roll services
-  ```gen3 roll all```
+  ```gen3 roll all
+```
   Note: it might take a few minutes to complete, let it run.
 
 7. Get the newly created ELB endpoint so you can point your domain to it.
-  ```kubectl get service revproxy-service-elb -o json | jq -r .status.loadBalancer.ingress[].hostname```
+  ```kubectl get service revproxy-service-elb -o json | jq -r .status.loadBalancer.ingress[].hostname
+```
 
 8. Go to your registrar and point the desired domain to the outcome of above command.
 
