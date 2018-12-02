@@ -62,23 +62,24 @@ gen3 cd
 3. Edit the `config.tfvars` file with a text editor of prefference. 
 
   Variables to pay attention to:
-    `vpc_cidr_block` CIDR where the commons resources would reside. EX: 172.99.192.0/20. As for now, only /20 subnets are supported. Your VPC must have only RFC1918 or CG NAT CIDRs.
 
-    `dictionary_url` url where the dictionary schema is, it must be in json format
+`vpc_cidr_block` CIDR where the commons resources would reside. EX: 172.16.192.0/20. As for now, only /20 subnets are supported. Your VPC must have only RFC1918 or CG NAT CIDRs.
 
-    `portal_app`
+`dictionary_url` url where the dictionary schema is, it must be in json format
 
-    `aws_cert_name` AWS ARN for the certificate to use on the Load Balancer that will be in front for HTTPS access.
+`portal_app`
 
-    `hostname` domain which the commons will respond to
+`aws_cert_name` AWS ARN for the certificate to use on the Load Balancer that will be in front for HTTPS access.
 
-    `config_folder` folder for permissions. By default, commons would try to load a user.yaml file from s3://cdis-gen3-users/CONFIG_FOLDER/user.yaml. This bucket is not publicly accessible, you can later set a different one though. Just keep in mind that the folder with the name you are setting this var with needs to exist within the bucket and a user.yaml file within the folder in question. You can still set permissions based on a local file
+`hostname` domain which the commons will respond to
 
-    `google_client_secret` and `google_client_id`  Google set of API key so you can set google authentication.
+`config_folder` folder for permissions. By default, commons would try to load a user.yaml file from s3://cdis-gen3-users/CONFIG_FOLDER/user.yaml. This bucket is not publicly accessible, you can later set a different one though. Just keep in mind that the folder with the name you are setting this var with needs to exist within the bucket and a user.yaml file within the folder in question. You can still set permissions based on a local file
 
-    `csoc_managed` if you are going to set up your commons hooked up to a central control management account. By default it is set to yes, any other value would assume that you don't want this to happen. If you leave the default value, you must run the logging module first, otherwise terraform will fail.
+`google_client_secret` and `google_client_id`  Google set of API key so you can set google authentication.
 
-    `csoc_vpc_id` VPC id from where you are running gen3 commands, must be in the same region as where you are running gen3.
+`csoc_managed` if you are going to set up your commons hooked up to a central control management account. By default it is set to yes, any other value would assume that you don't want this to happen. If you leave the default value, you must run the logging module first, otherwise terraform will fail.
+
+`csoc_vpc_id` VPC id from where you are running gen3 commands, must be in the same region as where you are running gen3.
 
     Note: If you are hooking up your commons with a cetralized control management account, you may need to add additional variables to this file with more information about said account.
 
@@ -120,13 +121,13 @@ gen3 cd
 
   Variables to pay attention to:
 
-  `vpc_name` name of the commons it *MUST* be the same one used in part two.
+`vpc_name` name of the commons it *MUST* be the same one used in part two.
 
-  `users_policy` this is the name of the policy that allows access to the user.yaml file mentioned in part two. This variable value should always be the same as the above one, but it might differ in very specific cases.
+`users_policy` this is the name of the policy that allows access to the user.yaml file mentioned in part two. This variable value should always be the same as the above one, but it might differ in very specific cases.
 
-  `instance_type` default set to t2.medium. Change if necessary.
+`instance_type` default set to t2.medium. Change if necessary.
 
-  `ec2_keyname` an existing Key Pair in EC2 for the workers for deployment. More keys can be added automatically if you specify them in $HOME/cloud-automation/files/authorized_keys/ops_team.
+`ec2_keyname` an existing Key Pair in EC2 for the workers for deployment. More keys can be added automatically if you specify them in $HOME/cloud-automation/files/authorized_keys/ops_team.
 
 4. Create a terraform plan
 ```bash
