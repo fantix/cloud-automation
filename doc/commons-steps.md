@@ -81,7 +81,7 @@ gen3 cd
 
 `csoc_vpc_id` VPC id from where you are running gen3 commands, must be in the same region as where you are running gen3.
 
-    Note: If you are hooking up your commons with a cetralized control management account, you may need to add additional variables to this file with more information about said account.
+*Note:* If you are hooking up your commons with a cetralized control management account, you may need to add additional variables to this file with more information about said account.
 
 
 4. Create a terraform plan
@@ -128,6 +128,7 @@ gen3 cd
 `instance_type` default set to t2.medium. Change if necessary.
 
 `ec2_keyname` an existing Key Pair in EC2 for the workers for deployment. More keys can be added automatically if you specify them in $HOME/cloud-automation/files/authorized_keys/ops_team.
+
 
 4. Create a terraform plan
 ```bash
