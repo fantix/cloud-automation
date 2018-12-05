@@ -432,7 +432,7 @@ vpc_name="$GEN3_WORKSPACE"
 #vpc_octet2=GET_A_UNIQUE_VPC_172_OCTET2
 #vpc_octet3=GET_A_UNIQUE_VPC_172_OCTET3
 
-vpc_cidr=UNIQUE_CIDR
+vpc_cidr_block=UNIQUE_CIDR
 
 dictionary_url="https://s3.amazonaws.com/dictionary-artifacts/YOUR/DICTIONARY/schema.json"
 portal_app="dev"
