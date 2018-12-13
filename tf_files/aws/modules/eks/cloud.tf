@@ -106,6 +106,29 @@ resource "aws_subnet" "eks_private" {
   }
 }
 
+# The subnet where our cluster will live in
+resource "aws_subnet" "eks_private2" {
+  count = 3
+  vpc_id                  = "${data.aws_vpc.the_vpc.id}"
+  cidr_block              = "${cidrsubnet(data.aws_vpc.the_vpc.cidr_block, 4 , ( 4 + count.index ))}"
+  availability_zone       = "${random_shuffle.az.result[count.index]}"
+  map_public_ip_on_launch = false
+
+  tags = "${
+    map(
+     "Name", "eks_private_${count.index + 3}",
+     "Environment", "${var.vpc_name}",
+     "Organization", "Basic Service",
+     "kubernetes.io/cluster/${var.vpc_name}", "owned",
+    )
+  }"
+
+  lifecycle {
+    # allow user to change tags interactively - ex - new kube-aws cluster
+    ignore_changes = ["tags", "availability_zone"]
+  }
+}
+
 
 # for the ELB to talk to the worker nodes
 resource "aws_subnet" "eks_public" {
@@ -209,7 +232,7 @@ data "aws_subnet_ids" "private" {
     Name = "eks_private_*"
   }
   depends_on = [
-    "aws_subnet.eks_private",
+    "aws_subnet.eks_private", "aws_subnet.eks_private2",
   ]
 }
 
@@ -292,7 +315,7 @@ resource "aws_eks_cluster" "eks_cluster" {
   role_arn = "${aws_iam_role.eks_control_plane_role.arn}"
 
   vpc_config {
-    subnet_ids  = ["${aws_subnet.eks_private.*.id}"]
+    subnet_ids  = ["${aws_subnet.eks_private.*.id}", "${aws_subnet.eks_private2.*.id}"]
 #   subnet_ids  = ["${aws_subnet.eks_private_1.id}", "${aws_subnet.eks_private_2.id}", "${aws_subnet.eks_private_3.id}"]
     security_group_ids = ["${aws_security_group.eks_control_plane_sg.id}"]
   }
@@ -300,6 +323,8 @@ resource "aws_eks_cluster" "eks_cluster" {
   depends_on = [
     "aws_iam_role_policy_attachment.eks-policy-AmazonEKSClusterPolicy",
     "aws_iam_role_policy_attachment.eks-policy-AmazonEKSServicePolicy",
+    "aws_subnet.eks_private",
+    "aws_subnet.eks_private2",
   ]
 }
 
@@ -492,27 +517,6 @@ resource "aws_security_group_rule" "nodes_internode_communications" {
 }
 
 
-# Let's allow ssh just in case
-resource "aws_security_group" "ssh" {
-  name        = "ssh_eks_${var.vpc_name}"
-  description = "security group that only enables ssh"
-  vpc_id      = "${data.aws_vpc.the_vpc.id}"
-
-  ingress {
-    from_port   = 22
-    to_port     = 22
-    protocol    = "TCP"
-    cidr_blocks = ["0.0.0.0/0"]
-    #cidr_blocks = ["${data.aws_vpc.the_vpc.cidr_block}"]
-  }
-
-  tags {
-    Environment  = "${var.vpc_name}"
-    Organization = "Basic Service"
-    Name         = "ssh_eks_${var.vpc_name}"
-  }
-}
-
 ## Worker Node AutoScaling Group
 # Now we have everything in place to create and manage EC2 instances that will serve as our worker nodes
 # in the Kubernetes cluster. This setup utilizes an EC2 AutoScaling Group (ASG) rather than manually working with
@@ -533,12 +537,12 @@ data "aws_ami" "eks_worker" {
   owners      = ["602401143452"] # Amazon Account ID
 }
 
-
 # EKS currently documents this required userdata for EKS worker nodes to
 # properly configure Kubernetes applications on the EC2 instance.
 # We utilize a Terraform local here to simplify Base64 encoding this
 # information into the AutoScaling Launch Configuration.
 # More information: https://amazon-eks.s3-us-west-2.amazonaws.com/1.10.3/2018-06-05/amazon-eks-nodegroup.yaml
+
 locals {
   eks_node_userdata = <<USERDATA
 #!/bin/bash -xe
@@ -576,7 +580,10 @@ EFO
 
 sudo cat /home/ec2-user/.ssh/authorized_keys > /root/.ssh/authorized_keys
 USERDATA
+
 }
+
+
 
 resource "aws_launch_configuration" "eks_launch_configuration" {
   associate_public_ip_address = false
@@ -600,19 +607,13 @@ resource "aws_launch_configuration" "eks_launch_configuration" {
 }
 
 
-# Finally, we create an AutoScaling Group that actually launches EC2 instances based on the
-# AutoScaling Launch Configuration.
-
-# NOTE: The usage of the specific kubernetes.io/cluster/* resource tag below is required for EKS
-# and Kubernetes to discover and manage compute resources.
-
 resource "aws_autoscaling_group" "eks_autoscaling_group" {
-  desired_capacity     = 2
+  desired_capacity     = 2 
   launch_configuration = "${aws_launch_configuration.eks_launch_configuration.id}"
   max_size             = 10
-  min_size             = 2
+  min_size             = 2 
   name                 = "eks-worker-node-${var.vpc_name}"
-  vpc_zone_identifier  = ["${aws_subnet.eks_private.*.id}"]
+  vpc_zone_identifier  = ["${aws_subnet.eks_private.*.id}", "${aws_subnet.eks_private2.*.id}"]
 
   tag {
     key                 = "Environment"
@@ -644,11 +645,40 @@ resource "aws_autoscaling_group" "eks_autoscaling_group" {
     propagate_at_launch = true
   }
 
+  tag {
+    key                 = "k8s.io/nodepool/default"
+    value               = ""
+    propagate_at_launch = true
+  }
+
 # Avoid unnecessary changes for existing commons running on EKS 
   lifecycle {
     ignore_changes = ["desired_capacity","max_size","min_size"]
   }
 }
+
+
+# Let's allow ssh just in case
+resource "aws_security_group" "ssh" {
+  name        = "ssh_eks_${var.vpc_name}"
+  description = "security group that only enables ssh"
+  vpc_id      = "${data.aws_vpc.the_vpc.id}"
+
+  ingress {
+    from_port   = 22
+    to_port     = 22
+    protocol    = "TCP"
+    cidr_blocks = ["0.0.0.0/0"]
+    #cidr_blocks = ["${data.aws_vpc.the_vpc.cidr_block}"]
+  }
+
+  tags {
+    Environment  = "${var.vpc_name}"
+    Organization = "Basic Service"
+    Name         = "ssh_eks_${var.vpc_name}"
+  }
+}
+
 
 # NOTE: At this point, your Kubernetes cluster will have running masters and worker nodes, however, the worker nodes will
 # not be able to join the Kubernetes cluster quite yet. The next section has the required Kubernetes configuration to

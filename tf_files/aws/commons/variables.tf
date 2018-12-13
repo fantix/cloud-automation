@@ -139,3 +139,6 @@ locals {
 }
 
 
+variable "subscription_filter" {
+  default = ""
+}

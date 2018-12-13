@@ -54,18 +54,27 @@ resource "aws_security_group" "private_es" {
 }
 
 
-resource "aws_subnet" "private_sn_es" {
-  vpc_id                  = "${element(data.aws_vpcs.vpcs.ids, count.index)}"
-  cidr_block              = "${cidrhost(data.aws_vpc.the_vpc.cidr_block, 256 * 6 )}/24"
-  availability_zone       = "${element(random_shuffle.az.result, count.index)}"
-  map_public_ip_on_launch = false
+#resource "aws_subnet" "private_sn_es" {
+#  vpc_id                  = "${element(data.aws_vpcs.vpcs.ids, count.index)}"
+#  cidr_block              = "${cidrhost(data.aws_vpc.the_vpc.cidr_block, 256 * 6 )}/24"
+#  availability_zone       = "${element(random_shuffle.az.result, count.index)}"
+#  map_public_ip_on_launch = false
 
-  tags {
-    Name         = "private_es"
-    Environment  = "${var.vpc_name}"
-    Organization = "Basic Service"
+#  tags {
+#    Name         = "private_es"
+#    Environment  = "${var.vpc_name}"
+#    Organization = "Basic Service"
+#  }
+#}
+
+data "aws_subnet" "int_services" {
+  vpc_id                  = "${element(data.aws_vpcs.vpcs.ids, count.index)}"
+  filter {
+    name   = "tag:Name"
+    values = ["int_services"] # insert value here
   }
 }
+  
 
 
 resource "aws_elasticsearch_domain" "gen3_metadata" {
@@ -76,7 +85,8 @@ resource "aws_elasticsearch_domain" "gen3_metadata" {
   }
   vpc_options {
     security_group_ids = ["${aws_security_group.private_es.id}"]
-    subnet_ids = ["${aws_subnet.private_sn_es.id}"]
+    #subnet_ids = ["${aws_subnet.private_sn_es.id}"]
+    subnet_ids = ["${data.aws_subnet.int_services.id}"]
   }
   cluster_config {
     instance_type = "m4.large.elasticsearch"
