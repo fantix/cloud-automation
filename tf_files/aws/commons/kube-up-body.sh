@@ -83,8 +83,8 @@ if [[ -f cluster.yaml ]]; then # setup a kube-aws cluster
   #
 
   # New kube-aws version doesn't need the s3-uri argument
-  gen3 arun kube-aws validate #--s3-uri "s3://${s3_bucket}/${vpc_name}"
-  gen3 arun kube-aws up #--s3-uri "s3://${s3_bucket}/${vpc_name}"
+  #gen3 arun kube-aws validate #--s3-uri "s3://${s3_bucket}/${vpc_name}"
+  #gen3 arun kube-aws up #--s3-uri "s3://${s3_bucket}/${vpc_name}"
 
   cat - <<EOM
 The kube-aws cluster is up; now add an entry in route53 for the CSOC account.

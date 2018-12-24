@@ -85,9 +85,10 @@ data "aws_vpc" "the_vpc" {
 
 # The subnet where our cluster will live in 
 resource "aws_subnet" "eks_private" {
-  count = 3
+  #count = 3
+  count                   = "${random_shuffle.az.result_count}"
   vpc_id                  = "${data.aws_vpc.the_vpc.id}"
-  cidr_block              = "${cidrsubnet(data.aws_vpc.the_vpc.cidr_block, 4 , ( 7 + count.index ))}"
+  cidr_block              = "${cidrsubnet(data.aws_vpc.the_vpc.cidr_block, 3 , ( 2 + count.index ))}"
   availability_zone       = "${random_shuffle.az.result[count.index]}"
   map_public_ip_on_launch = false
 
@@ -107,32 +108,33 @@ resource "aws_subnet" "eks_private" {
 }
 
 # The subnet where our cluster will live in
-resource "aws_subnet" "eks_private2" {
-  count = 3
-  vpc_id                  = "${data.aws_vpc.the_vpc.id}"
-  cidr_block              = "${cidrsubnet(data.aws_vpc.the_vpc.cidr_block, 4 , ( 4 + count.index ))}"
-  availability_zone       = "${random_shuffle.az.result[count.index]}"
-  map_public_ip_on_launch = false
+#resource "aws_subnet" "eks_private2" {
+#  count = 3
+#  vpc_id                  = "${data.aws_vpc.the_vpc.id}"
+#  cidr_block              = "${cidrsubnet(data.aws_vpc.the_vpc.cidr_block, 4 , ( 4 + count.index ))}"
+#  availability_zone       = "${random_shuffle.az.result[count.index]}"
+#  map_public_ip_on_launch = false
 
-  tags = "${
-    map(
-     "Name", "eks_private_${count.index + 3}",
-     "Environment", "${var.vpc_name}",
-     "Organization", "Basic Service",
-     "kubernetes.io/cluster/${var.vpc_name}", "owned",
-    )
-  }"
+#  tags = "${
+#    map(
+#     "Name", "eks_private_${count.index + 3}",
+#     "Environment", "${var.vpc_name}",
+#     "Organization", "Basic Service",
+#     "kubernetes.io/cluster/${var.vpc_name}", "owned",
+#    )
+#  }"
 
-  lifecycle {
+#  lifecycle {
     # allow user to change tags interactively - ex - new kube-aws cluster
-    ignore_changes = ["tags", "availability_zone"]
-  }
-}
+#    ignore_changes = ["tags", "availability_zone"]
+#  }
+#}
 
 
 # for the ELB to talk to the worker nodes
 resource "aws_subnet" "eks_public" {
-  count                   = 3
+  #count                   = 3
+  count                   = "${random_shuffle.az.result_count}"
   vpc_id                  = "${data.aws_vpc.the_vpc.id}"
   cidr_block              = "${cidrsubnet(data.aws_vpc.the_vpc.cidr_block, 4 , ( 10 + count.index ))}"
   map_public_ip_on_launch = true
@@ -237,12 +239,13 @@ data "aws_subnet_ids" "private" {
 }
 
 resource "aws_route_table_association" "private_kube" {
-  count          = 3
+  #count          = 3
+  count          = "${random_shuffle.az.result_count}"
   subnet_id      = "${data.aws_subnet_ids.private.ids[count.index]}"
   route_table_id = "${aws_route_table.eks_private.id}"
   lifecycle {
     # allow user to change tags interactively - ex - new kube-aws cluster
-    ignore_changes = ["id", "subnet_id"]
+    ignore_changes = ["id", "subnet_id","tags"]
   }
 }
 
@@ -298,7 +301,8 @@ data "aws_subnet_ids" "public_kube" {
 
 
 resource "aws_route_table_association" "public_kube" {
-  count          = 3
+  #count          = 3
+  count          = "${random_shuffle.az.result_count}"
   subnet_id      = "${data.aws_subnet_ids.public_kube.ids[count.index]}"
   route_table_id = "${data.aws_route_table.public_kube.id}"
 
