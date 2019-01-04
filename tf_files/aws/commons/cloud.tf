@@ -21,6 +21,7 @@ module "cdis_vpc" {
   csoc_cidr       = "${var.csoc_cidr}"
   csoc_account_id = "${var.csoc_account_id}"
   squid-nlb-endpointservice-name = "${var.squid-nlb-endpointservice-name}"
+  subscription_filter = "${var.subscription_filter}"
 }
 
 # logs bucket for elb logs

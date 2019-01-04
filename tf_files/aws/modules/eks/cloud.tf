@@ -8,6 +8,23 @@
 
 
 
+module "jupiter" {
+  source               = "../eks-nodepool/"
+  ec2_keyname          = "${var.ec2_keyname}"
+  instance_type        = "${var.instance_type}"
+  users_policy         = "${var.users_policy}"
+  nodepool             = "jupiter"
+#  pool_name            = "jupiter"
+  vpc_name             = "${var.vpc_name}"
+  csoc_cidr            = "${var.csoc_cidr}"
+  eks_cluster_endpoint = "${aws_eks_cluster.eks_cluster.endpoint}"
+  eks_cluster_ca       = "${aws_eks_cluster.eks_cluster.certificate_authority.0.data}"
+  eks_private_subnets  = "${aws_subnet.eks_private.*.id}"
+
+}
+
+
+
 #Basics
 
 data "aws_caller_identity" "current" {}
@@ -234,7 +251,8 @@ data "aws_subnet_ids" "private" {
     Name = "eks_private_*"
   }
   depends_on = [
-    "aws_subnet.eks_private", "aws_subnet.eks_private2",
+    #"aws_subnet.eks_private", "aws_subnet.eks_private2",
+    "aws_subnet.eks_private",
   ]
 }
 
@@ -319,7 +337,8 @@ resource "aws_eks_cluster" "eks_cluster" {
   role_arn = "${aws_iam_role.eks_control_plane_role.arn}"
 
   vpc_config {
-    subnet_ids  = ["${aws_subnet.eks_private.*.id}", "${aws_subnet.eks_private2.*.id}"]
+    #subnet_ids  = ["${aws_subnet.eks_private.*.id}", "${aws_subnet.eks_private2.*.id}"]
+    subnet_ids  = ["${aws_subnet.eks_private.*.id}"]
 #   subnet_ids  = ["${aws_subnet.eks_private_1.id}", "${aws_subnet.eks_private_2.id}", "${aws_subnet.eks_private_3.id}"]
     security_group_ids = ["${aws_security_group.eks_control_plane_sg.id}"]
   }
@@ -328,7 +347,7 @@ resource "aws_eks_cluster" "eks_cluster" {
     "aws_iam_role_policy_attachment.eks-policy-AmazonEKSClusterPolicy",
     "aws_iam_role_policy_attachment.eks-policy-AmazonEKSServicePolicy",
     "aws_subnet.eks_private",
-    "aws_subnet.eks_private2",
+    #"aws_subnet.eks_private2",
   ]
 }
 
@@ -617,7 +636,8 @@ resource "aws_autoscaling_group" "eks_autoscaling_group" {
   max_size             = 10
   min_size             = 2 
   name                 = "eks-worker-node-${var.vpc_name}"
-  vpc_zone_identifier  = ["${aws_subnet.eks_private.*.id}", "${aws_subnet.eks_private2.*.id}"]
+  #vpc_zone_identifier  = ["${aws_subnet.eks_private.*.id}", "${aws_subnet.eks_private2.*.id}"]
+  vpc_zone_identifier  = ["${aws_subnet.eks_private.*.id}"]
 
   tag {
     key                 = "Environment"

@@ -25,6 +25,7 @@ if [[ $INTERNAL_IP == 10.* ]] ; then DNS_CLUSTER_IP=172.20.0.10; fi
 sed -i s,DNS_CLUSTER_IP,$DNS_CLUSTER_IP,g /etc/systemd/system/kubelet.service
 sed -i s,CERTIFICATE_AUTHORITY_FILE,$CA_CERTIFICATE_FILE_PATH,g /var/lib/kubelet/kubeconfig
 sed -i s,CLIENT_CA_FILE,$CA_CERTIFICATE_FILE_PATH,g  /etc/systemd/system/kubelet.service
+sed -i "/node-ip/a --node-labels=role=${nodepool} \\\\" /etc/systemd/system/kubelet.service
 systemctl daemon-reload
 systemctl restart kubelet
 cat > /home/ec2-user/.ssh/authorized_keys <<EFO

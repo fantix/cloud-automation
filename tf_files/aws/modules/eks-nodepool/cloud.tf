@@ -8,7 +8,7 @@
 ## First thing we need to create is the role that would spin up resources for us 
 
 resource "aws_iam_role" "eks_control_plane_role" {
-  name = "${var.vpc_name}_EKS_role"
+  name = "${var.vpc_name}_EKS_${var.nodepool}_role"
 
   assume_role_policy = <<EOF
 {
@@ -61,8 +61,8 @@ resource "random_shuffle" "az" {
 
 
 resource "aws_security_group" "eks_control_plane_sg" {
-  name        = "${var.vpc_name}-nodepool-${var.nodepool}control-plane"
-  description = "Cluster communication with worker nodes [${var.vpc_name}]"
+  name        = "${var.vpc_name}-nodepool-${var.nodepool}-control-plane"
+  description = "Cluster communication with worker nodes ${var.nodepool} [${var.vpc_name}]"
   vpc_id      = "${data.aws_vpc.the_vpc.id}"
 
   egress {
@@ -193,7 +193,7 @@ resource "aws_iam_instance_profile" "eks_node_instance_profile" {
 
 resource "aws_security_group" "eks_nodes_sg" {
   name        = "${var.vpc_name}_EKS_nodepool_${var.nodepool}_sg"
-  description = "Security group for all nodes in the EKS cluster [${var.vpc_name}] "
+  description = "Security group for all nodes in pool ${var.nodepool} in the EKS cluster [${var.vpc_name}] "
   vpc_id      = "${data.aws_vpc.the_vpc.id}"
 
   egress {
@@ -261,7 +261,7 @@ resource "aws_launch_configuration" "eks_launch_configuration" {
   iam_instance_profile        = "${aws_iam_instance_profile.eks_node_instance_profile.name}"
   image_id                    = "${data.aws_ami.eks_worker.id}"
   instance_type               = "${var.instance_type}"
-  name_prefix                 = "eks-${var.vpc_name}-nodepool-${var.pool_name}"
+  name_prefix                 = "eks-${var.vpc_name}-nodepool-${var.nodepool}"
   security_groups             = ["${aws_security_group.eks_nodes_sg.id}", "${aws_security_group.ssh.id}"]
   user_data_base64            = "${base64encode(data.template_file.bootstrap.rendered)}"
   key_name                    = "${var.ec2_keyname}"
@@ -283,8 +283,10 @@ resource "aws_autoscaling_group" "eks_autoscaling_group" {
   launch_configuration = "${aws_launch_configuration.eks_launch_configuration.id}"
   max_size             = 10
   min_size             = 2 
-  name                 = "eks-${var.poolname}worker-node-${var.vpc_name}"
-  vpc_zone_identifier  = ["${data.aws_subnet.eks_private.*.id}"]
+  name                 = "eks-${var.nodepool}worker-node-${var.vpc_name}"
+  #vpc_zone_identifier  = ["${data.aws_subnet.eks_private.*.id}"]
+  #vpc_zone_identifier  = ["${data.aws_subnet_ids.private.ids}"]
+  vpc_zone_identifier  = ["${var.eks_private_subnets}"]
 
   tag {
     key                 = "Environment"

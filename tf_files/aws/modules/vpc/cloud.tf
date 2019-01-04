@@ -25,7 +25,8 @@ module "fence-bot-user" {
 }
 
 resource "aws_vpc" "main" {
-  cidr_block           = "172.${var.vpc_octet2}.${var.vpc_octet3}.0/20"
+  cidr_block           = "${var.vpc_cidr_block}"
+  #cidr_block           = "172.${var.vpc_octet2}.${var.vpc_octet3}.0/20"
   enable_dns_hostnames = true
 
   tags {
