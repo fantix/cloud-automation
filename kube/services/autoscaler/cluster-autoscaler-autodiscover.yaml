@@ -119,6 +119,8 @@ spec:
       labels:
         app: cluster-autoscaler
     spec:
+      nodeSelector:
+        role: default
       serviceAccountName: cluster-autoscaler
       containers:
         - image: k8s.gcr.io/cluster-autoscaler:v1.2.2
@@ -139,7 +141,7 @@ spec:
             - --expander=least-waste
             # - --skip-nodes-with-system-pods=false
             - --scale-down-delay-after-add=7m
-            - --node-group-auto-discovery=asg:tag=k8s.io/cluster-autoscaler/enabled,k8s.io/cluster-type/eks,kubernetes.io/cluster/VPC_NAME
+            - --node-group-auto-discovery=asg:tag=k8s.io/cluster-autoscaler/enabled,k8s.io/cluster-type/eks,k8s.io/nodepool/default,kubernetes.io/cluster/VPC_NAME
           env:
             - name: AWS_REGION
               value: us-east-1

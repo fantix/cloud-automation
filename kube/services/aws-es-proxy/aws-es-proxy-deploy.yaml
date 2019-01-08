@@ -18,6 +18,8 @@ spec:
       labels:
         app: esproxy
     spec:
+      nodeSelector:
+        role: default
       automountServiceAccountToken: false
       volumes:
         - name: credentials
