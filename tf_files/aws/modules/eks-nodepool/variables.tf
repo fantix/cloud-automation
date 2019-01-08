@@ -30,3 +30,7 @@ variable "eks_cluster_endpoint" {
 variable "eks_private_subnets" {
   type  = "list"
 }
+
+variable "control_plane_sg" {}
+
+variable "default_nodepool_sg" {}

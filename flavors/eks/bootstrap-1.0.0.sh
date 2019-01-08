@@ -1,5 +1,11 @@
 #!/bin/bash -xe
 
+# EKS currently documents this required userdata for EKS worker nodes to
+# properly configure Kubernetes applications on the EC2 instance.
+# We utilize a Terraform template here to simplify Base64 encoding this
+# information into the AutoScaling Launch Configuration.
+# More information: https://amazon-eks.s3-us-west-2.amazonaws.com/1.10.3/2018-06-05/amazon-eks-nodegroup.yaml
+
 CA_CERTIFICATE_DIRECTORY=/etc/kubernetes/pki
 CA_CERTIFICATE_FILE_PATH=$CA_CERTIFICATE_DIRECTORY/ca.crt
 

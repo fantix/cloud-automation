@@ -60,18 +60,18 @@ resource "random_shuffle" "az" {
 
 
 
-resource "aws_security_group" "eks_control_plane_sg" {
-  name        = "${var.vpc_name}-nodepool-${var.nodepool}-control-plane"
-  description = "Cluster communication with worker nodes ${var.nodepool} [${var.vpc_name}]"
-  vpc_id      = "${data.aws_vpc.the_vpc.id}"
-
-  egress {
-    from_port       = 0
-    to_port         = 0
-    protocol        = "-1"
-    cidr_blocks     = ["0.0.0.0/0"]
-  }
-}
+#resource "aws_security_group" "eks_control_plane_sg" {
+#  name        = "${var.vpc_name}-nodepool-${var.nodepool}-control-plane"
+#  description = "Cluster communication with worker nodes ${var.nodepool} [${var.vpc_name}]"
+#  vpc_id      = "${data.aws_vpc.the_vpc.id}"
+#
+#  egress {
+#    from_port       = 0
+#    to_port         = 0
+#    protocol        = "-1"
+#    cidr_blocks     = ["0.0.0.0/0"]
+#  }
+#}
 
 
 
@@ -222,9 +222,11 @@ resource "aws_security_group_rule" "https_nodes_to_plane" {
   from_port                = 443
   to_port                  = 443
   protocol                 = "tcp"
-  security_group_id        = "${aws_security_group.eks_control_plane_sg.id}"
+  #security_group_id        = "${aws_security_group.eks_control_plane_sg.id}"
+  security_group_id        = "${var.control_plane_sg}"
   source_security_group_id = "${aws_security_group.eks_nodes_sg.id}"
-  depends_on               = ["aws_security_group.eks_nodes_sg", "aws_security_group.eks_control_plane_sg" ]
+  #depends_on               = ["aws_security_group.eks_nodes_sg", "aws_security_group.eks_control_plane_sg" ]
+  depends_on               = ["aws_security_group.eks_nodes_sg"]
 }
 
 
@@ -234,8 +236,10 @@ resource "aws_security_group_rule" "communication_plane_to_nodes" {
   to_port                  = 65534
   protocol                 = "tcp"
   security_group_id        = "${aws_security_group.eks_nodes_sg.id}"
-  source_security_group_id = "${aws_security_group.eks_control_plane_sg.id}"
-  depends_on               = ["aws_security_group.eks_nodes_sg", "aws_security_group.eks_control_plane_sg" ]
+  #source_security_group_id = "${aws_security_group.eks_control_plane_sg.id}"
+  source_security_group_id = "${var.control_plane_sg}"
+  #depends_on               = ["aws_security_group.eks_nodes_sg", "aws_security_group.eks_control_plane_sg" ]
+  depends_on               = ["aws_security_group.eks_nodes_sg"]
 }
 
 resource "aws_security_group_rule" "nodes_internode_communications" {
@@ -248,6 +252,15 @@ resource "aws_security_group_rule" "nodes_internode_communications" {
   self              = true
 }
 
+resource "aws_security_group_rule" "nodes_interpool_communications" {
+  type = "ingress"
+  from_port         = 0
+  to_port           = 0
+  protocol          = "-1"
+  description       = "allow default nodes to communicate with each other"
+  security_group_id = "${aws_security_group.eks_nodes_sg.id}"
+  source_security_group_id = "${var.default_nodepool_sg}"
+}
 
 ## Worker Node AutoScaling Group
 # Now we have everything in place to create and manage EC2 instances that will serve as our worker nodes
@@ -273,7 +286,7 @@ resource "aws_launch_configuration" "eks_launch_configuration" {
 
   lifecycle {
     create_before_destroy = true
-    ignore_changes  = ["user_data_base64"]
+    #ignore_changes  = ["user_data_base64"]
   }
 }
 
