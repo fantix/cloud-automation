@@ -438,12 +438,15 @@ if [[ -f "${WORKSPACE}/${vpc_name}/creds.json" ]]; then  # update secrets
     touch "$psqlFlagFile"
   fi
 
-  # setup the database ...
+  echo setup the database ...
   cd "${WORKSPACE}/${vpc_name}"
   if [[ ! -f .rendered_gdcapi_db ]]; then
+    echo rendered_gdcapi_db
     # job runs asynchronously ...
+    echo gen3 job run gdcdb-create
     gen3 job run gdcdb-create
     # also go ahead and setup the indexd auth secrets
+    echo job run indexd-userdb
     gen3 job run indexd-userdb
     echo "Sleep 10 seconds for gdcdb-create and indexd-userdb jobs"
     sleep 10
@@ -451,6 +454,7 @@ if [[ -f "${WORKSPACE}/${vpc_name}/creds.json" ]]; then  # update secrets
     gen3 job logs indexd-userdb || true
     echo "Leaving the jobs running in the background if not already done"
   elif [[ ! -f .rendered_indexd_userdb ]]; then
+    echo rendered_indexd_userdb
     # may need to re-run just the indexd-job in some situations
     gen3 job run indexd-userdb
     echo "Sleep 10 seconds for indexd-userd job"
@@ -460,4 +464,5 @@ if [[ -f "${WORKSPACE}/${vpc_name}/creds.json" ]]; then  # update secrets
   fi
   # Avoid doing previous block more than once or when not necessary ...
   touch .rendered_gdcapi_db .rendered_indexd_userdb
+  echo setup database done
 fi
