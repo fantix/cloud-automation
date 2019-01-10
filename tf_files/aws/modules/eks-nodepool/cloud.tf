@@ -337,6 +337,18 @@ resource "aws_autoscaling_group" "eks_autoscaling_group" {
     propagate_at_launch = true
   }
 
+  tag {
+    key                 = "k8s.io/cluster-autoscaler/node-template/label/role"
+    value               = "${var.nodepool}"
+    propagate_at_launch = true
+  }
+
+  tag {
+    key                 = "k8s.io/cluster-autoscaler/node-template/taint/dedicated"
+    value               = "role:NoSchedule"
+    propagate_at_launch = true
+  }
+
 # Avoid unnecessary changes for existing commons running on EKS 
   lifecycle {
     ignore_changes = ["desired_capacity","max_size","min_size"]
